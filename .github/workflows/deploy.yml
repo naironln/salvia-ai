@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 concurrency:
   group: deploy-production
@@ -17,31 +18,54 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Diagnose checkout
+        run: |
+          pwd
+          echo "--- root listing ---"
+          ls -la
+          echo "--- tracked file count ---"
+          find . -type f -not -path './.git/*' | wc -l
+
+      - name: Build deploy tarball
+        run: |
+          tar --exclude='./.git' \
+              --exclude='./node_modules' \
+              --exclude='./frontend/node_modules' \
+              --exclude='./backend/__pycache__' \
+              --exclude='./backend/.pytest_cache' \
+              --exclude='./.venv' \
+              --exclude='./backend/.venv' \
+              --exclude='./.DS_Store' \
+              --exclude='./frontend/dist' \
+              --exclude='./frontend/.vite' \
+              --exclude='*.pem' \
+              --exclude='./.env' \
+              -czf /tmp/deploy.tar.gz .
+          ls -lh /tmp/deploy.tar.gz
+          echo "tarball file count:"
+          tar -tzf /tmp/deploy.tar.gz | wc -l
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Rsync code to EC2-apps
+      - name: Upload tarball + extract on EC2-apps
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 "$EC2_USER@$EC2_HOST" "sudo mkdir -p /opt/salvia && sudo chown $EC2_USER:$EC2_USER /opt/salvia"
-          rsync -az --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.env' \
-            --exclude='__pycache__' \
-            --exclude='.pytest_cache' \
-            --exclude='.venv' \
-            --exclude='.DS_Store' \
-            --exclude='frontend/dist' \
-            --exclude='frontend/.vite' \
-            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
-            ./ "$EC2_USER@$EC2_HOST:/opt/salvia/"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" \
+            "sudo mkdir -p /opt/salvia && sudo chown $EC2_USER:$EC2_USER /opt/salvia"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no \
+            /tmp/deploy.tar.gz "$EC2_USER@$EC2_HOST:/tmp/deploy.tar.gz"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$EC2_USER@$EC2_HOST" \
+            "cd /opt/salvia && \
+             tar -xzf /tmp/deploy.tar.gz --no-overwrite-dir && \
+             rm /tmp/deploy.tar.gz && \
+             find . -type f | wc -l && \
+             test -f .env && echo '.env preserved' || echo '.env MISSING (place it manually before next deploy)'"
 
       - name: Build & start containers
         uses: appleboy/ssh-action@v1.2.0
@@ -53,21 +77,14 @@ jobs:
           script: |
             set -e
             cd /opt/salvia
-            echo "=== verify .env present ==="
             test -f .env && echo ".env ok" || (echo "ERROR: .env missing"; exit 1)
-            echo "=== docker version ==="
             docker --version
-            echo "=== disk before ==="
             df -h /
-            echo "=== docker cleanup ==="
             docker compose -f docker-compose.aws.yml down --remove-orphans || true
             docker image prune -a -f
             docker builder prune -a -f
-            echo "=== disk after cleanup ==="
             df -h /
-            echo "=== docker compose up ==="
             docker compose -f docker-compose.aws.yml up -d --build --force-recreate
-            echo "=== wait for backend health ==="
             for i in $(seq 1 30); do
               if curl -sf http://localhost:8001/health > /dev/null 2>&1 \
                  || curl -sf http://localhost:8001/healthz > /dev/null 2>&1; then
@@ -75,5 +92,4 @@ jobs:
               fi
               sleep 5
             done
-            echo "=== ps ==="
             docker compose -f docker-compose.aws.yml ps
