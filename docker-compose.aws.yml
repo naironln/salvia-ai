@@ -4,10 +4,10 @@
 # self-hosted prod setup):
 #  - No Neo4j service. Neo4j lives on EC2-data and is reached via private
 #    VPC (NEO4J_URI in .env points at bolt://172.31.35.149:7687).
-#  - Backend exposes 8001 on the host (Caddy on EC2-apps routes
-#    salvia-ai.com/api/* -> 127.0.0.1:8001).
-#  - Frontend serves the SPA on host port 8081 with nginx.aws.conf
-#    (HTTP-only; Caddy terminates TLS). No origin certificate volume.
+#  - Backend exposes 8002 on the host (Caddy on EC2-apps routes
+#    salvia-ai.com/api/* -> 127.0.0.1:8002; port 8001 is Coin's backend).
+#  - Frontend serves the SPA on host port 8082 with nginx.aws.conf
+#    (HTTP-only; Caddy terminates TLS; 8081 is Coin's frontend).
 #  - All meal images live in the named `meal_images` volume on EC2-apps
 #    (preserved across deploys — same as legacy).
 #
@@ -38,7 +38,7 @@ services:
       retries: 5
       start_period: 30s
     ports:
-      - "127.0.0.1:8001:8000"
+      - "127.0.0.1:8002:8000"
 
   frontend:
     build:
@@ -53,7 +53,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8081:80"
+      - "127.0.0.1:8082:80"
 
 volumes:
   meal_images:
