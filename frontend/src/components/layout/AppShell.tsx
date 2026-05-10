@@ -62,7 +62,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex items-center gap-2.5 border-b border-warm-gray-200 px-6 py-5 dark:border-warm-gray-700/50">
         <UtensilsCrossed className="h-6 w-6 text-brand-500" />
         <span className="font-heading text-xl font-bold text-brand-600 dark:text-brand-400">
-          Zestful
+          Salvia
         </span>
       </div>
 
@@ -132,7 +132,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2">
           <UtensilsCrossed className="h-5 w-5 text-brand-500" />
           <span className="font-heading text-lg font-bold text-brand-600 dark:text-brand-400">
-            Zestful
+            Salvia
           </span>
         </div>
         <button

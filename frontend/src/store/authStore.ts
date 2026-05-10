@@ -19,6 +19,6 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ token: null, user: null }),
       isAuthenticated: () => !!get().token,
     }),
-    { name: 'zestful-auth' }
+    { name: 'salvia-auth' }
   )
 )

@@ -5,7 +5,7 @@ async def create_alcohol_entry(session: AsyncSession, data: dict) -> dict:
     result = await session.run(
         """
         MATCH (u:User {id: $user_id})
-        CREATE (a:AlcoholEntry {
+        CREATE (a:AlcoholEntry:Salvia {
             id: $id,
             doses: $doses,
             notes: $notes,
@@ -13,6 +13,7 @@ async def create_alcohol_entry(session: AsyncSession, data: dict) -> dict:
             logged_at: datetime()
         })
         MERGE (day:Day {date: date($date)})
+        SET day:Salvia
         CREATE (u)-[:LOGGED_ALCOHOL]->(a)
         CREATE (a)-[:ON_DAY]->(day)
         RETURN a

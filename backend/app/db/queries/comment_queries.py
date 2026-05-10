@@ -27,7 +27,7 @@ async def create_meal_comment(
         """
         MATCH (n:User {id: $nutritionist_id})-[:SUPERVISES]->(p:User {id: $patient_id})
         MATCH (p)-[:LOGGED]->(m:MealEntry {id: $meal_id})
-        CREATE (c:Comment {
+        CREATE (c:Comment:Salvia {
             id: $comment_id,
             content: $content,
             comment_type: 'meal',
@@ -62,7 +62,7 @@ async def create_week_comment(
     result = await session.run(
         """
         MATCH (n:User {id: $nutritionist_id})-[:SUPERVISES]->(p:User {id: $patient_id})
-        CREATE (c:Comment {
+        CREATE (c:Comment:Salvia {
             id: $comment_id,
             content: $content,
             comment_type: 'week',
