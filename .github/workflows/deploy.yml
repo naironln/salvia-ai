@@ -76,8 +76,19 @@ jobs:
           command_timeout: 35m
           script: |
             set -e
+            echo "=== diagnose ==="
+            whoami
             cd /opt/salvia
-            test -f .env && echo ".env ok" || (echo "ERROR: .env missing"; exit 1)
+            pwd
+            ls -la
+            stat .env 2>&1 || echo "stat: no .env"
+            echo "=== check .env ==="
+            if [ -f .env ]; then
+              echo ".env ok"
+            else
+              echo "ERROR: .env missing"
+              exit 1
+            fi
             docker --version
             df -h /
             docker compose -f docker-compose.aws.yml down --remove-orphans || true
