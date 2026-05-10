@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to EC2-apps
 
 on:
   push:
@@ -15,7 +15,35 @@ jobs:
     timeout-minutes: 40
 
     steps:
-      - name: Deploy via SSH
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync code to EC2-apps
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$EC2_USER@$EC2_HOST" "sudo mkdir -p /opt/salvia && sudo chown $EC2_USER:$EC2_USER /opt/salvia"
+          rsync -az --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='__pycache__' \
+            --exclude='.pytest_cache' \
+            --exclude='.venv' \
+            --exclude='.DS_Store' \
+            --exclude='frontend/dist' \
+            --exclude='frontend/.vite' \
+            -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" \
+            ./ "$EC2_USER@$EC2_HOST:/opt/salvia/"
+
+      - name: Build & start containers
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -24,23 +52,28 @@ jobs:
           command_timeout: 35m
           script: |
             set -e
-            echo "=== whoami ==="
-            whoami
+            cd /opt/salvia
+            echo "=== verify .env present ==="
+            test -f .env && echo ".env ok" || (echo "ERROR: .env missing"; exit 1)
             echo "=== docker version ==="
             docker --version
-            echo "=== cd ==="
-            cd /opt/zestful
             echo "=== disk before ==="
             df -h /
-            echo "=== git pull ==="
-            git pull
             echo "=== docker cleanup ==="
-            docker compose -f docker-compose.prod.yml down --remove-orphans || true
+            docker compose -f docker-compose.aws.yml down --remove-orphans || true
             docker image prune -a -f
             docker builder prune -a -f
             echo "=== disk after cleanup ==="
             df -h /
             echo "=== docker compose up ==="
-            docker compose -f docker-compose.prod.yml up -d --build --force-recreate
+            docker compose -f docker-compose.aws.yml up -d --build --force-recreate
+            echo "=== wait for backend health ==="
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:8001/health > /dev/null 2>&1 \
+                 || curl -sf http://localhost:8001/healthz > /dev/null 2>&1; then
+                echo "backend healthy"; break
+              fi
+              sleep 5
+            done
             echo "=== ps ==="
-            docker compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.aws.yml ps

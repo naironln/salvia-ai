@@ -69,6 +69,7 @@ async def seed(neo4j_uri: str, neo4j_user: str, neo4j_password: str) -> None:
                     """
                     MERGE (n:Nutrient {key: $key})
                     ON CREATE SET n.name = $name, n.unit = $unit
+                    SET n:Salvia
                     """,
                     key=key, name=name, unit=unit,
                 )
@@ -99,11 +100,13 @@ async def seed(neo4j_uri: str, neo4j_user: str, neo4j_password: str) -> None:
                     """
                     UNWIND $items AS item
                     MERGE (fc:FoodCategory {name: item.category})
+                    SET fc:Salvia
                     MERGE (f:Food {taco_id: item.taco_id})
                     ON CREATE SET
                         f.name       = item.name,
                         f.name_lower = item.name_lower,
                         f.humidity   = item.humidity
+                    SET f:Salvia
                     MERGE (f)-[:BELONGS_TO]->(fc)
                     WITH f, item
                     UNWIND keys(item.nutrients) AS nkey

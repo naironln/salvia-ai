@@ -5,7 +5,7 @@ from neo4j import AsyncSession
 async def create_user(session: AsyncSession, user_data: dict) -> dict:
     result = await session.run(
         """
-        CREATE (u:User {
+        CREATE (u:User:Salvia {
             id: $id,
             email: $email,
             name: $name,

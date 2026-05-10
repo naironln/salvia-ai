@@ -6,7 +6,7 @@ async def create_meal_entry(session: AsyncSession, data: dict) -> dict:
     result = await session.run(
         """
         MATCH (u:User {id: $user_id})
-        CREATE (m:MealEntry {
+        CREATE (m:MealEntry:Salvia {
             id: $id,
             meal_type: $meal_type,
             dish_name: $dish_name,
@@ -24,12 +24,15 @@ async def create_meal_entry(session: AsyncSession, data: dict) -> dict:
             meal_source: $meal_source
         })
         MERGE (day:Day {date: date($date)})
+        SET day:Salvia
         CREATE (u)-[:LOGGED]->(m)
         CREATE (m)-[:ON_DAY]->(day)
         MERGE (d:Dish {name: toLower($dish_name)})
+        SET d:Salvia
         MERGE (m)-[:CONTAINS_DISH]->(d)
         FOREACH (ing_name IN $ingredients |
             MERGE (i:Ingredient {name: toLower(ing_name)})
+            SET i:Salvia
             MERGE (m)-[:HAS_INGREDIENT]->(i)
         )
         RETURN m
@@ -138,9 +141,11 @@ async def apply_meal_correction(
             m.has_protein = $has_protein,
             m.meal_source = $meal_source
         MERGE (d:Dish {name: toLower($dish_name)})
+        SET d:Salvia
         MERGE (m)-[:CONTAINS_DISH]->(d)
         FOREACH (ing_name IN $ingredients |
             MERGE (i:Ingredient {name: toLower(ing_name)})
+            SET i:Salvia
             MERGE (m)-[:HAS_INGREDIENT]->(i)
         )
         RETURN m
