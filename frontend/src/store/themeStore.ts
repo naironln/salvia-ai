@@ -26,7 +26,7 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),
     {
-      name: 'zestful-theme',
+      name: 'salvia-theme',
       onRehydrateStorage: () => (state) => {
         if (state) applyTheme(state.theme)
       },

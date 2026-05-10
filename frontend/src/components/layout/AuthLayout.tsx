@@ -18,7 +18,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
 
         <div className="relative z-10 text-center">
           <UtensilsCrossed className="mx-auto h-16 w-16 text-white/90" />
-          <h2 className="mt-6 font-heading text-4xl font-bold text-white">Zestful</h2>
+          <h2 className="mt-6 font-heading text-4xl font-bold text-white">Salvia</h2>
           <p className="mt-3 max-w-sm text-lg text-white/80">
             Seu diário alimentar inteligente com análise nutricional por IA
           </p>
@@ -48,7 +48,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
             <UtensilsCrossed className="h-7 w-7 text-white" />
           </div>
           <span className="font-heading text-xl font-bold text-brand-600 dark:text-brand-400">
-            Zestful
+            Salvia
           </span>
         </div>
 

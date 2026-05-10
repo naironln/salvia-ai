@@ -3,7 +3,7 @@ import tempfile
 
 os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key-for-pytest-only-min-32")
 # main.py mkdirs media_dir at import time; default /app/media is not writable on dev machines
-os.environ["MEDIA_DIR"] = tempfile.mkdtemp(prefix="zestful-test-media-")
+os.environ["MEDIA_DIR"] = tempfile.mkdtemp(prefix="salvia-test-media-")
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
