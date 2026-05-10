@@ -76,11 +76,19 @@ jobs:
           command_timeout: 35m
           script: |
             set -e
-            echo "=== diagnose ==="
+            echo "=== diagnose host identity ==="
+            hostname
+            cat /etc/hostname
+            ip -4 addr show 2>&1 | grep inet
+            uname -a
             whoami
+            echo "=== diagnose /opt/salvia ==="
+            mount | grep -E "/opt|overlay|docker" || echo "no special mounts"
             cd /opt/salvia
             pwd
+            stat .
             ls -la
+            ls -la /opt/salvia/
             stat .env 2>&1 || echo "stat: no .env"
             echo "=== check .env ==="
             if [ -f .env ]; then
